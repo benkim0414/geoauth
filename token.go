@@ -65,7 +65,8 @@ type tokenJSON struct {
 }
 
 func (t *tokenJSON) expiry() (time.Time, error) {
-	return time.Parse(time.RFC3339, t.ExpiresAt)
+	const layout = "2006-01-02T15:04:05.999999999"
+	return time.Parse(layout, t.ExpiresAt)
 }
 
 // retrieveToken takes a *Config and uses that to retrieve an Token.
