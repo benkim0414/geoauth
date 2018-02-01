@@ -40,7 +40,7 @@ func TestPasswordCredentialsTokenRequest(t *testing.T) {
 				"token": "7CbSGwAngmtTWR2kEds9KN0yZIxLJYBj",
 				"expiresAt": %q
 			}
-		}`, time.Now().Add(time.Hour).Format(time.RFC3339))))
+		}`, time.Now().Add(time.Hour).Format("2006-01-02T15:04:05.999999999"))))
 	}))
 	defer ts.Close()
 	conf := newConf(ts.URL)

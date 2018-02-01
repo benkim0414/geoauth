@@ -33,7 +33,7 @@ func TestRetrieveTokenWithContexts(t *testing.T) {
 		io.WriteString(w, `{
 			"authenticationToken": {
 				"token": "ACCESS_TOKEN",
-				"expiresAt": "2006-01-02T15:04:05Z"
+				"expiresAt": "2018-02-01T08:37:49.3844879"
 			}
 		}`)
 	}))
