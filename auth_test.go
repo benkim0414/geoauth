@@ -12,9 +12,27 @@ import (
 
 func newConf(url string) *Config {
 	return &Config{
-		Email:    "EMAIL",
-		Password: "PASSWORD",
-		AuthURL:  url,
+		ClientID:     "CLIENT_ID",
+		ClientSecret: "CLIENT_SECRET",
+		AuthURL:      url,
+	}
+}
+
+func TestConfigFromJSON(t *testing.T) {
+	var jsonKey = []byte(`{
+		"client_id": "CLIENT_ID",
+		"client_secret": "CLIENT_SECRET"
+	}`)
+
+	conf, err := ConfigFromJSON(jsonKey)
+	if err != nil {
+		t.Error(err)
+	}
+	if got, want := conf.ClientID, "CLIENT_ID"; got != want {
+		t.Errorf("ClientID = %q, want %q", got, want)
+	}
+	if got, want := conf.ClientSecret, "CLIENT_SECRET"; got != want {
+		t.Errorf("ClientSecret = %q, want %q", got, want)
 	}
 }
 
@@ -30,7 +48,7 @@ func TestPasswordCredentialsTokenRequest(t *testing.T) {
 		if err != nil {
 			t.Errorf("Failed reading request body: %s.", err)
 		}
-		expected = `{"user": {"email": "EMAIL", "password": "PASSWORD"}}`
+		expected = `{"user": {"email": "CLIENT_ID", "password": "CLIENT_SECRET"}}`
 		if string(body) != expected {
 			t.Errorf("res.Body = %q; wnat %q", string(body), expected)
 		}
@@ -67,7 +85,7 @@ func TestTokenRefreshRequest(t *testing.T) {
 			t.Errorf("Unexpected Content-Type header, %v is found.", headerContentType)
 		}
 		body, _ := ioutil.ReadAll(r.Body)
-		if string(body) != `{"user": {"email": "EMAIL", "password": "PASSWORD"}}` {
+		if string(body) != `{"user": {"email": "CLIENT_ID", "password": "CLIENT_SECRET"}}` {
 			t.Errorf("Unexpected refresh request payload, %v is found.", string(body))
 		}
 	}))

@@ -2,17 +2,38 @@ package geoauth
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"sync"
+
+	"github.com/benkim0414/geoauth/internal"
 )
 
+// GEOAuthURL is the GEO authentication endpoint URL.
+const GEOAuthURL = "https://api.geocreation.com.au/api/session/login"
+
 type Config struct {
-	// Email is the user's email to log in.
-	Email string
-	// Password is the user's password.
-	Password string
+	// ClientID is the application's ID.
+	ClientID string
+	// ClientSecret is the application's secret.
+	ClientSecret string
 	// AuthURL is the resource server's authorization endpoint URL.
 	AuthURL string
+}
+
+// ConfigFromJSON uses a geo_credentials.json file to construct a config.
+func ConfigFromJSON(jsonKey []byte) (*Config, error) {
+	var cred struct {
+		ClientID     string `json:"client_id"`
+		ClientSecret string `json:"client_secret"`
+	}
+	if err := json.Unmarshal(jsonKey, &cred); err != nil {
+		return nil, err
+	}
+	return &Config{
+		ClientID:     cred.ClientID,
+		ClientSecret: cred.ClientSecret,
+	}, nil
 }
 
 // PasswordCredentialsToken converts a resource owner email and password
@@ -93,11 +114,11 @@ func (s *reuseTokenSource) Token() (*Token, error) {
 // The returned client is not valid beyond the lifetime of the context.
 func NewClient(ctx context.Context, src TokenSource) *http.Client {
 	if src == nil {
-		return ContextClient(ctx)
+		return internal.ContextClient(ctx)
 	}
 	return &http.Client{
 		Transport: &Transport{
-			Base:   ContextClient(ctx).Transport,
+			Base:   internal.ContextClient(ctx).Transport,
 			Source: ReuseTokenSource(nil, src),
 		},
 	}
