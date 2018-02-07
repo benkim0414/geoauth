@@ -36,6 +36,16 @@ func ConfigFromJSON(jsonKey []byte) (*Config, error) {
 	}, nil
 }
 
+// KMSCredentialsToken converts client credentials into a token via AWS KMS.
+func (c *Config) KMSCredentialsToken(ctx context.Context) (*Token, error) {
+	clientSecret, err := internal.DecryptSecret(c.ClientSecret)
+	if err != nil {
+		return nil, err
+	}
+	c.ClientSecret = clientSecret
+	return retrieveToken(ctx, c)
+}
+
 // PasswordCredentialsToken converts a resource owner email and password
 // pair into a token.
 func (c *Config) PasswordCredentialsToken(ctx context.Context) (*Token, error) {
