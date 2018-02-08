@@ -114,7 +114,7 @@ func TestTokenRetrieveError(t *testing.T) {
 
 	expected := fmt.Sprintf("cannot fetch token: %v\nResponse: %s", "400 Bad Request", `{"statusMessage": "Invalid email or password"}`)
 	if errStr := err.Error(); errStr != expected {
-		t.Fatalf("got %#v, expected $#v", errStr, expected)
+		t.Fatalf("got %#v, expected %#v", errStr, expected)
 	}
 }
 
