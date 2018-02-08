@@ -2,27 +2,17 @@ package geoauth
 
 import (
 	"context"
-	"encoding/json"
-	"errors"
 	"fmt"
-	"io/ioutil"
 	"net/http"
-	"strings"
 	"time"
 
-	"golang.org/x/net/context/ctxhttp"
+	"github.com/benkim0414/geoauth/internal"
 )
 
 // expiryDelta determines how earlier a token should be considered
 // expired then its actual expiration time. It is used to avoid late
 // expirations due to client-server time mismatches.
 const expiryDelta = 10 * time.Second
-
-var (
-	// ErrNoToken is returned if a request is successful but the body
-	// does not contain an authorization token.
-	ErrNoToken = errors.New("authorization server did not include a token in the response")
-)
 
 // Token represents the credentials used to authorize the requests
 // to access protected resources on GEO backend.
@@ -54,73 +44,40 @@ func (t *Token) Valid() bool {
 	return t != nil && t.AccessToken != "" && !t.expired()
 }
 
-// tokenJSON is the struct representing the HTTP response from GEO
-// returning a token in JSON form.
-type tokenJSON struct {
-	//	ID        string `json:"_id"`
-	//	Type      string `json:"_type"`
-	Token     string `json:"token"`
-	ExpiresAt string `json:"expiresAt"`
-	//	UserID    string `json:"userId"`
+// tokenFromInternal maps an *internal.Token struct into a *Token struct.
+func tokenFromInternal(t *internal.Token) *Token {
+	if t == nil {
+		return nil
+	}
+	return &Token{
+		AccessToken: t.AccessToken,
+		Expiry:      t.Expiry,
+	}
 }
 
-func (t *tokenJSON) expiry() (time.Time, error) {
-	const layout = "2006-01-02T15:04:05.999999999"
-	return time.Parse(layout, t.ExpiresAt)
-}
-
-// retrieveToken takes a *Config and uses that to retrieve an Token.
+// retrieveToken takes a *Config and uses that to retrieve an *internal.Token.
+// This token is then mapped from *internal.Token into an *geoauth.Token
+// which is returned along with an error.
 func retrieveToken(ctx context.Context, c *Config) (*Token, error) {
-	user := fmt.Sprintf(`{"user": {"email": %q, "password": %q}}`, c.Email, c.Password)
-	req, err := http.NewRequest(http.MethodPost, c.AuthURL, strings.NewReader(user))
+	tk, err := internal.RetrieveToken(ctx, c.ClientID, c.ClientSecret, c.AuthURL)
 	if err != nil {
-		return nil, err
-	}
-	req.Header.Set("Content-Type", "application/json")
-	r, err := ctxhttp.Do(ctx, ContextClient(ctx), req)
-	if err != nil {
-		return nil, err
-	}
-	defer r.Body.Close()
-	body, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		return nil, err
-	}
-	if code := r.StatusCode; code < 200 || code > 299 {
-		return nil, &RetrieveError{
-			Response: r,
-			Body:     body,
+		if rErr, ok := err.(*internal.RetrieveError); ok {
+			return nil, (*RetrieveError)(rErr)
 		}
-	}
-
-	var authToken struct {
-		Tok tokenJSON `json:"authenticationToken"`
-	}
-	if err = json.Unmarshal(body, &authToken); err != nil {
 		return nil, err
 	}
-	token := &Token{
-		AccessToken: authToken.Tok.Token,
-	}
-	token.Expiry, err = authToken.Tok.expiry()
-	if err != nil {
-		return nil, err
-	}
-	// Don't overwrite `AccessToken` with an empty value
-	// if this was a token refreshing request.
-	if token.AccessToken == "" {
-		return token, ErrNoToken
-	}
-	return token, nil
+	return tokenFromInternal(tk), nil
 }
 
 // RetrieveError is the error returned when the token endpoint returns a
 // non-2xx HTTP status code.
 type RetrieveError struct {
 	Response *http.Response
-	Body     []byte
+	// Body is the body that was consumed by reading Response.Body.
+	// It may be truncated.
+	Body []byte
 }
 
 func (r *RetrieveError) Error() string {
-	return fmt.Sprintf("cannot fetch token %v\nResponse: %s", r.Response.Status, r.Body)
+	return fmt.Sprintf("cannot fetch token: %v\nResponse: %s", r.Response.Status, r.Body)
 }
