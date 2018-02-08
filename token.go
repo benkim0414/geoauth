@@ -79,5 +79,5 @@ type RetrieveError struct {
 }
 
 func (r *RetrieveError) Error() string {
-	return fmt.Sprintf("cannot fetch token %v\nResponse: %s", r.Response.Status, r.Body)
+	return fmt.Sprintf("cannot fetch token: %v\nResponse: %s", r.Response.Status, r.Body)
 }

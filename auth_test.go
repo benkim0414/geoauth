@@ -95,6 +95,29 @@ func TestTokenRefreshRequest(t *testing.T) {
 	c.Get(ts.URL + "/somethingelse")
 }
 
+func TestTokenRetrieveError(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(`{"statusMessage": "Invalid email or password"}`))
+	}))
+	defer ts.Close()
+	conf := newConf(ts.URL)
+	_, err := conf.PasswordCredentialsToken(context.Background())
+	if err == nil {
+		t.Fatalf("got no error, expected one")
+	}
+	_, ok := err.(*RetrieveError)
+	if !ok {
+		t.Fatalf("got %T error, expected *RetrieveError", err)
+	}
+
+	expected := fmt.Sprintf("cannot fetch token: %v\nResponse: %s", "400 Bad Request", `{"statusMessage": "Invalid email or password"}`)
+	if errStr := err.Error(); errStr != expected {
+		t.Fatalf("got %#v, expected $#v", errStr, expected)
+	}
+}
+
 func TestConfigClientWithToken(t *testing.T) {
 	tok := &Token{
 		AccessToken: "ACCESS_TOKEN",
