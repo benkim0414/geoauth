@@ -9,8 +9,8 @@ import (
 	"github.com/benkim0414/geoauth/internal"
 )
 
-// GEOAuthURL is the GEO authentication endpoint URL.
-const GEOAuthURL = "https://api.geocreation.com.au/api/session/login"
+// URL is the GEO authentication endpoint URL.
+const URL = "https://api.geocreation.com.au/api/session/login"
 
 type Config struct {
 	// ClientID is the application's ID.
